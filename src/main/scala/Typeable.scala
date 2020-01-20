@@ -21,6 +21,14 @@ object Typeable{
       ctorm().asInstanceOf[U]
     }
   }
+  implicit class thing[A<:COL[_]](a:A){
+    val toThing = a.asInstanceOf[COL[A]]
+  }
+  implicit class Converter[A<:COL[_]](g: COL[A] => Column)  {
+    def satisfy[B<:COL[_]]()(implicit tagb:ClassTag[B]): COL[A] => COL[B] = {
+      (c:COL[A]) => {class T extends COL[B](g(c)); new T}
+    }
+  }
   abstract class Dependency[-A<:COL[_],+B<:Dependency[_,B] with COL[B]](implicit ev: COL[A] => COL[B],taga:ClassTag[A],tagb: ClassTag[B]) extends COL[B](coldef = ev(classTag[A].runtimeClass.newInstance().asInstanceOf[COL[A]]).col){
     val f = this.ev
   }

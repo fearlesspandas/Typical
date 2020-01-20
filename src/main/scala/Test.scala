@@ -1,5 +1,5 @@
 import Typical.core.Typeable._
-import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.{Column, SparkSession}
 import org.apache.spark.sql.functions.{lit, when}
 
 object Test {
@@ -13,16 +13,17 @@ object Test {
   class ONE extends AXIOM[ONE]
   class TWO extends AXIOM[TWO]
 
-  implicit val three: COL[ONE with TWO ] => COL[THREE] = (ot:COL[ONE with TWO]) => {
-    val one = ot.get[ONE]
-    val two = ot.get[TWO]
-    class T extends COL[THREE](when(one.col.mod(2) === 0,two.col).otherwise(one.col))
-    new T
+val otmap: COL[ONE with TWO ] => Column = (ot:COL[ONE with TWO]) => {
+  val one = ot.get[ONE]
+  val two = ot.get[TWO]
+  when(one.col.mod(2) === 0,two.col).otherwise(one.col)
+}
+  val threemap: COL[THREE] => Column = (three:COL[THREE]) => {
+    when(three.col === "3", lit("is three")).otherwise("not three")
   }
-  implicit val four: COL[THREE] => COL[FOUR] = (three:COL[THREE]) => {
-    class T extends COL[FOUR]( when(three.col === "3", lit("is three")).otherwise("not three"))
-    new T
-  }
+  implicit val three = otmap.satisfy[THREE]
+  implicit val four = threemap.satisfy[FOUR]
+
   class THREE extends Dependency[ONE with TWO,THREE]
   class FOUR extends Dependency[THREE,FOUR]
 }

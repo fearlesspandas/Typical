@@ -19,23 +19,17 @@ object Typeable {
   private def buildcol[U <: COL[_]](implicit tag: TypeTag[U],tagu:ClassTag[U]): COL[U] = {
     classTag[U].runtimeClass.newInstance().asInstanceOf[U].toCOLL
   }
+  class Converterthing[A<:COL[_]](f: A => Column)
   abstract class COL[+A <: COL[_]](coldef: Column)(implicit taga: ClassTag[A]) extends Column(classTag[A].runtimeClass.getSimpleName()) {
     val col = this.coldef
 
-//    def get[U >: A <: COL[U]](implicit tag: TypeTag[U]): U = {
-//      val m = ru.runtimeMirror(getClass().getClassLoader())
-//      val classu = ru.typeOf[U].typeSymbol.asClass
-//      val cm = m.reflectClass(classu)
-//      val ctor = ru.typeOf[U].decl(ru.termNames.CONSTRUCTOR).asMethod
-//      val ctorm = cm.reflectConstructor(ctor)
-//      ctorm().asInstanceOf[U]
-//    }
-    def get[U >: A <: COL[U]](implicit tag: TypeTag[U],ctag:ClassTag[U]): U = {
+    private def get[U >: A <: COL[U]](implicit tag: TypeTag[U],ctag:ClassTag[U]): U = {
       build[U].asInstanceOf[U]
     }
-    def getcol[U >: A <: COL[U]](implicit tag: TypeTag[U],ctag:ClassTag[U]): Column = get[U].col
-
+    def getcol[U >: A <: AXIOM[U]](implicit tag: TypeTag[U],ctag:ClassTag[U],src : U): Column = get[U].col
+    //def getother[U>:A](implicit src:U) = get[U]
   }
+
   implicit class thing[A<:COL[_]](a:A){
     val toThing = a.asInstanceOf[COL[A]]
   }

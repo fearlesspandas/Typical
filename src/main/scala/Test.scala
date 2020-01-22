@@ -14,8 +14,11 @@ object Test {
   //----match axiomatic columns to axiom types
   class ONE extends AXIOM[ONE]
   class TWO extends AXIOM[TWO]
-
+  class D extends AXIOM[D]
   //----define dependencies
+  //this is how you specify multiple dependencies for a column
+  //by declaring the dependency of the compound type of all the dependencies
+  //a dependency of A,B for column C would then be A with B
   class THREE extends Dependency[ONE with TWO,THREE]
   class FOUR extends Dependency[THREE,FOUR]
   class FIVE extends Dependency[THREE with FOUR,FIVE]
@@ -24,14 +27,13 @@ object Test {
 
   //remove this to prevent THREE from compiling
   val otmap: ONE with TWO  => Column = (ot:ONE with TWO) => {
-    implicit val src = ot
-    //implicit val tar = (new D) //technically breaks dependency encapsulation as of now
-    val one = ot.getcol[ONE]
-    val two = ot.getcol[TWO]
-    //val d = null.asInstanceOf[D].getcol[D] //technically breaks dependency encapsulation as of now
+    implicit val src = ot //set a COL type as implicit src. For dependencies to be accurate this should be set to the function input
+    //implicit val tar = (new D) //uncomment this to see how multiple src columns produce compile error
+    val one = data.getcol[ONE]
+    val two = data.getcol[TWO]
+    //val d = data.getcol[D] //uncomment this to see invalid data access from src columns
     when(one.mod(2) === 0,two).otherwise(one)
   }
-
   //remove this to prevent FOUR from compiling
   val threemap: THREE => Column = (three:THREE) => {
     when(three.col === "3", lit("is three")).otherwise("not three")

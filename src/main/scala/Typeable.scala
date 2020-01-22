@@ -19,45 +19,45 @@ object Typeable {
   private def buildcol[U <: COL[_]](implicit tag: TypeTag[U],tagu:ClassTag[U]): COL[U] = {
     classTag[U].runtimeClass.newInstance().asInstanceOf[U].toCOLL
   }
-  class Converterthing[A<:COL[_]](f: A => Column)
+
+
   abstract class COL[+A <: COL[_]](coldef: Column)(implicit taga: ClassTag[A]) extends Column(classTag[A].runtimeClass.getSimpleName()) {
     val col = this.coldef
 
     private def get[U >: A <: COL[U]](implicit tag: TypeTag[U],ctag:ClassTag[U]): U = {
       build[U].asInstanceOf[U]
     }
-    def getcol[U >: A <: AXIOM[U]](implicit tag: TypeTag[U],ctag:ClassTag[U],src : U): Column = get[U].col
-    //def getother[U>:A](implicit src:U) = get[U]
+//  private def get[U <: COL[U]](implicit tag: TypeTag[U],ctag:ClassTag[U],ev:A<:< U): U = {
+//    build[U].asInstanceOf[U]
+//  }
+    private[core] def getcol[U >: A <: COL[U]](implicit tag: TypeTag[U],ctag:ClassTag[U]): Column = get[U].col
+
+  }
+  def data[B<:COL[_]](implicit src:B,tagb:TypeTag[B],ctagb:ClassTag[B]) = {
+    class T extends VALIDATED[B](build[B])
+    new T
+  }
+  private[core] abstract class VALIDATED[B<:COL[_]](b:COL[B])(implicit src:B){
+
+    def getcol[U>:B<:COL[U]](implicit tag: TypeTag[U],ctag:ClassTag[U]) = b.getcol[U]
   }
 
-  implicit class thing[A<:COL[_]](a:A){
-    val toThing = a.asInstanceOf[COL[A]]
-  }
-//  implicit class Converter[A<:COL[_]](g: COL[A] => Column)  {
-//    def satisfy[B<:COL[_]]()(implicit tagb:ClassTag[B]): COL[A] => COL[B] = {
-//      (c:COL[A]) => {class T extends COL[B](g(c)); new T}
-//    }
-//  }
-implicit class Converter[A<:COL[_]](g: A => Column)(implicit taga:TypeTag[A],ctaga:ClassTag[A]) {
-  def satisfy[B<:COL[_]]()(implicit tagb:ClassTag[B]): COL[A] => COL[B] = {
-    (c:COL[A]) => {
-      val a = build[A]
-      class T extends COL[B](g(a)); new T
+  implicit class Converter[A<:COL[_]](g: A => Column)(implicit taga:TypeTag[A],ctaga:ClassTag[A]) {
+    def satisfy[B<:COL[_]]()(implicit tagb:ClassTag[B]): COL[A] => COL[B] = {
+      (c:COL[A]) => {
+        val a = build[A]
+        class T extends COL[B](g(a)); new T
+      }
     }
   }
-}
+
   abstract class Dependency[-A<:COL[_],+B<:Dependency[_,B] with COL[B]](implicit ev: COL[A] => COL[B],taga:TypeTag[A],ctaga:ClassTag[A],tagb: ClassTag[B]) extends COL[B](coldef = ev(build[A]).col){
     val f = this.ev
   }
 
   implicit class DAT[+A <: DAT[_]](datadef: DataFrame)(implicit startdf: DataFrame, taga: ClassTag[A]) {
     val df = if (datadef == null) this.startdf else this.datadef
-
     def toDAT() = this
-//    def toCol(): = {
-//      type X = AXIOM[_]
-//    }
-
   }
 
   abstract class AXIOM[+A <: AXIOM[A]](implicit initdf: DataFrame, taga: ClassTag[A]) extends COL[A](initdf.col(classTag[A].runtimeClass.getSimpleName()))
@@ -65,14 +65,12 @@ implicit class Converter[A<:COL[_]](g: A => Column)(implicit taga:TypeTag[A],cta
   abstract class COLL[+A <: COL[_]](implicit taga:ClassTag[A]) extends COL[A](classTag[A].runtimeClass.newInstance().asInstanceOf[COL[A]].col)
 
   implicit class COLTOCOLL[A<:COL[_]](c:A)(implicit taga:ClassTag[A]) extends COLL[A]{
-    //class T extends COL[A](classTag[A].runtimeClass.newInstance().asInstanceOf[COL[A]].col)
     val toCOLL =this.asInstanceOf[COL[A]]
     val toA = this.c
-    //def get[U >: A <: COL[U]](implicit tag:TypeTag[U]) = c.get[U].asInstanceOf[COL[U]].toCOLL
   }
   //col types can only reference a start df
   implicit class COLTODAT[A <: COL[_]](c: COL[A ])(implicit taga:ClassTag[A],tag:ClassTag[COLTODAT[A]], initdf: DataFrame) extends DAT[COLTODAT[A]](
-    initdf.withColumn(c.toString(), c.col)//initdf.withColumn(c.get[A].toString(),c.getcol[A]).withColumn(c.get[B].toString(),c.getcol[B])
+    initdf.withColumn(c.toString(), c.col)
   )(startdf = initdf, tag) {
     val iscol = true;
     val todf = this.df
@@ -101,7 +99,6 @@ implicit class Converter[A<:COL[_]](g: A => Column)(implicit taga:TypeTag[A],cta
     datadef = buildcol[B].df.withColumn(dep.toString(),dep.col)//.add[A]
   ) {
     val isDep = true;
-    //override val df = (classTag[B]).runtimeClass.newInstance().asInstanceOf[COL[B]].add[A]
     val df2 = (classTag[B]).runtimeClass.newInstance().asInstanceOf[COL[B]].add[A]//wihtcol
   }
 

@@ -1,4 +1,3 @@
-package core
 import Typical.core.Typeable._
 import org.apache.spark.sql.{Column, SparkSession}
 import org.apache.spark.sql.functions.{lit, when}
@@ -31,7 +30,8 @@ object Test {
     //implicit val tar = (new D) //uncomment this to see how multiple src columns produce compile error
     val one = data.getcol[ONE]
     val two = data.getcol[TWO]
-    //val d = data.getcol[D] //uncomment this to see invalid data access from src columns
+    //val f = (new FIVE).col //DevNote: make cols/dependencies only constructible in columns package
+    //val d = data[D].getcol[D] //uncomment this to see invalid data access from src columns
     when(one.mod(2) === 0,two).otherwise(one)
   }
   //remove this to prevent FOUR from compiling
@@ -45,14 +45,17 @@ object Test {
 
   //----set the column definition of the dependencies to their corresponding maps
   //assert that otmap defines column of FOUR
-  implicit val three = otmap.satisfy[THREE]
+  implicit val three = otmap.satisfy[THREE] //makke satisfy only callable in axioms package
   //assert that threemap defines the column of FOUR
   implicit val four = threemap.satisfy[FOUR]
   //assert that fourmap defines the column of FIVE
   implicit val five = fourmap.satisfy[FIVE]
-
+  //(new THREE).testing
+  //class T extends COL[ONE with TWO](null)
+// (new THREE).testing
+//  (new T).retesting
   ///----Show dataframes
-  (new FIVE).todf.show
-  (new FOUR).todf.show
+  //(new FIVE).todf.show
+  //(new FOUR)
 
 }
